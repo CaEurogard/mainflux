@@ -4,7 +4,7 @@
 ## SPDX-License-Identifier: Apache-2.0
 
 BUILD_DIR = build
-SERVICES = users things http normalizer ws coap lora influxdb-writer influxdb-reader mongodb-writer mongodb-reader cassandra-writer cassandra-reader cli bootstrap
+SERVICES = users things http normalizer ws coap lora influxdb-writer influxdb-reader mongodb-writer mongodb-reader cassandra-writer cassandra-reader postgres-writer cli bootstrap
 DOCKERS = $(addprefix docker_,$(SERVICES))
 DOCKERS_DEV = $(addprefix docker_dev_,$(SERVICES))
 CGO_ENABLED ?= 0
@@ -112,10 +112,7 @@ rundev:
 	cd scripts && ./run.sh
 
 run:
-	docker-compose -f docker/docker-compose.yml -f docker/docker-compose.normalizer-debugging.yml -f docker/docker-compose.nats-debugging.yml -f docker/docker-compose.persistence.yml up -d
-
-runwriter:
-	docker-compose -f docker/addons/influxdb-writer/docker-compose.yml -f docker/addons/influxdb-writer/docker-compose.influxdb-debugging.yaml -f docker/addons/influxdb-writer/docker-compose.persistence.yml up -d
+	docker-compose -f docker/docker-compose.yml up
 
 runui:
 	$(MAKE) -C ui run
