@@ -3,13 +3,13 @@
 
 package mainflux
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
-
-import encoding_binary "encoding/binary"
-
-import io "io"
+import (
+	encoding_binary "encoding/binary"
+	fmt "fmt"
+	proto "github.com/golang/protobuf/proto"
+	io "io"
+	math "math"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -24,11 +24,12 @@ const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
 
 // RawMessage represents a message emitted by the Mainflux adapters layer.
 type RawMessage struct {
-	Channel              string   `protobuf:"bytes,1,opt,name=Channel,proto3" json:"Channel,omitempty"`
-	Publisher            string   `protobuf:"bytes,2,opt,name=Publisher,proto3" json:"Publisher,omitempty"`
-	Protocol             string   `protobuf:"bytes,3,opt,name=Protocol,proto3" json:"Protocol,omitempty"`
-	ContentType          string   `protobuf:"bytes,4,opt,name=ContentType,proto3" json:"ContentType,omitempty"`
-	Payload              []byte   `protobuf:"bytes,5,opt,name=Payload,proto3" json:"Payload,omitempty"`
+	Channel              string   `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
+	Subtopic             string   `protobuf:"bytes,2,opt,name=subtopic,proto3" json:"subtopic,omitempty"`
+	Publisher            string   `protobuf:"bytes,3,opt,name=publisher,proto3" json:"publisher,omitempty"`
+	Protocol             string   `protobuf:"bytes,4,opt,name=protocol,proto3" json:"protocol,omitempty"`
+	ContentType          string   `protobuf:"bytes,5,opt,name=contentType,proto3" json:"contentType,omitempty"`
+	Payload              []byte   `protobuf:"bytes,6,opt,name=payload,proto3" json:"payload,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -38,7 +39,7 @@ func (m *RawMessage) Reset()         { *m = RawMessage{} }
 func (m *RawMessage) String() string { return proto.CompactTextString(m) }
 func (*RawMessage) ProtoMessage()    {}
 func (*RawMessage) Descriptor() ([]byte, []int) {
-	return fileDescriptor_message_3605d564124e586d, []int{0}
+	return fileDescriptor_33c57e4bae7b9afd, []int{0}
 }
 func (m *RawMessage) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -55,8 +56,8 @@ func (m *RawMessage) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return b[:n], nil
 	}
 }
-func (dst *RawMessage) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_RawMessage.Merge(dst, src)
+func (m *RawMessage) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RawMessage.Merge(m, src)
 }
 func (m *RawMessage) XXX_Size() int {
 	return m.Size()
@@ -70,6 +71,13 @@ var xxx_messageInfo_RawMessage proto.InternalMessageInfo
 func (m *RawMessage) GetChannel() string {
 	if m != nil {
 		return m.Channel
+	}
+	return ""
+}
+
+func (m *RawMessage) GetSubtopic() string {
+	if m != nil {
+		return m.Subtopic
 	}
 	return ""
 }
@@ -104,21 +112,22 @@ func (m *RawMessage) GetPayload() []byte {
 
 // Message represents a resolved (normalized) raw message.
 type Message struct {
-	Channel   string `protobuf:"bytes,1,opt,name=Channel,proto3" json:"Channel,omitempty"`
-	Publisher string `protobuf:"bytes,2,opt,name=Publisher,proto3" json:"Publisher,omitempty"`
-	Protocol  string `protobuf:"bytes,3,opt,name=Protocol,proto3" json:"Protocol,omitempty"`
-	Name      string `protobuf:"bytes,4,opt,name=Name,proto3" json:"Name,omitempty"`
-	Unit      string `protobuf:"bytes,5,opt,name=Unit,proto3" json:"Unit,omitempty"`
+	Channel   string `protobuf:"bytes,1,opt,name=channel,proto3" json:"channel,omitempty"`
+	Subtopic  string `protobuf:"bytes,2,opt,name=subtopic,proto3" json:"subtopic,omitempty"`
+	Publisher string `protobuf:"bytes,3,opt,name=publisher,proto3" json:"publisher,omitempty"`
+	Protocol  string `protobuf:"bytes,4,opt,name=protocol,proto3" json:"protocol,omitempty"`
+	Name      string `protobuf:"bytes,5,opt,name=name,proto3" json:"name,omitempty"`
+	Unit      string `protobuf:"bytes,6,opt,name=unit,proto3" json:"unit,omitempty"`
 	// Types that are valid to be assigned to Value:
 	//	*Message_FloatValue
 	//	*Message_StringValue
 	//	*Message_BoolValue
 	//	*Message_DataValue
 	Value                isMessage_Value `protobuf_oneof:"value"`
-	ValueSum             *SumValue       `protobuf:"bytes,10,opt,name=ValueSum" json:"ValueSum,omitempty"`
-	Time                 float64         `protobuf:"fixed64,11,opt,name=Time,proto3" json:"Time,omitempty"`
-	UpdateTime           float64         `protobuf:"fixed64,12,opt,name=UpdateTime,proto3" json:"UpdateTime,omitempty"`
-	Link                 string          `protobuf:"bytes,13,opt,name=Link,proto3" json:"Link,omitempty"`
+	ValueSum             *SumValue       `protobuf:"bytes,11,opt,name=valueSum,proto3" json:"valueSum,omitempty"`
+	Time                 float64         `protobuf:"fixed64,12,opt,name=time,proto3" json:"time,omitempty"`
+	UpdateTime           float64         `protobuf:"fixed64,13,opt,name=updateTime,proto3" json:"updateTime,omitempty"`
+	Link                 string          `protobuf:"bytes,14,opt,name=link,proto3" json:"link,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}        `json:"-"`
 	XXX_unrecognized     []byte          `json:"-"`
 	XXX_sizecache        int32           `json:"-"`
@@ -128,7 +137,7 @@ func (m *Message) Reset()         { *m = Message{} }
 func (m *Message) String() string { return proto.CompactTextString(m) }
 func (*Message) ProtoMessage()    {}
 func (*Message) Descriptor() ([]byte, []int) {
-	return fileDescriptor_message_3605d564124e586d, []int{1}
+	return fileDescriptor_33c57e4bae7b9afd, []int{1}
 }
 func (m *Message) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -145,8 +154,8 @@ func (m *Message) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return b[:n], nil
 	}
 }
-func (dst *Message) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Message.Merge(dst, src)
+func (m *Message) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Message.Merge(m, src)
 }
 func (m *Message) XXX_Size() int {
 	return m.Size()
@@ -164,16 +173,16 @@ type isMessage_Value interface {
 }
 
 type Message_FloatValue struct {
-	FloatValue float64 `protobuf:"fixed64,6,opt,name=FloatValue,proto3,oneof"`
+	FloatValue float64 `protobuf:"fixed64,7,opt,name=floatValue,proto3,oneof"`
 }
 type Message_StringValue struct {
-	StringValue string `protobuf:"bytes,7,opt,name=StringValue,proto3,oneof"`
+	StringValue string `protobuf:"bytes,8,opt,name=stringValue,proto3,oneof"`
 }
 type Message_BoolValue struct {
-	BoolValue bool `protobuf:"varint,8,opt,name=BoolValue,proto3,oneof"`
+	BoolValue bool `protobuf:"varint,9,opt,name=boolValue,proto3,oneof"`
 }
 type Message_DataValue struct {
-	DataValue string `protobuf:"bytes,9,opt,name=DataValue,proto3,oneof"`
+	DataValue string `protobuf:"bytes,10,opt,name=dataValue,proto3,oneof"`
 }
 
 func (*Message_FloatValue) isMessage_Value()  {}
@@ -191,6 +200,13 @@ func (m *Message) GetValue() isMessage_Value {
 func (m *Message) GetChannel() string {
 	if m != nil {
 		return m.Channel
+	}
+	return ""
+}
+
+func (m *Message) GetSubtopic() string {
+	if m != nil {
+		return m.Subtopic
 	}
 	return ""
 }
@@ -294,20 +310,20 @@ func _Message_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
 	// value
 	switch x := m.Value.(type) {
 	case *Message_FloatValue:
-		_ = b.EncodeVarint(6<<3 | proto.WireFixed64)
+		_ = b.EncodeVarint(7<<3 | proto.WireFixed64)
 		_ = b.EncodeFixed64(math.Float64bits(x.FloatValue))
 	case *Message_StringValue:
-		_ = b.EncodeVarint(7<<3 | proto.WireBytes)
+		_ = b.EncodeVarint(8<<3 | proto.WireBytes)
 		_ = b.EncodeStringBytes(x.StringValue)
 	case *Message_BoolValue:
 		t := uint64(0)
 		if x.BoolValue {
 			t = 1
 		}
-		_ = b.EncodeVarint(8<<3 | proto.WireVarint)
+		_ = b.EncodeVarint(9<<3 | proto.WireVarint)
 		_ = b.EncodeVarint(t)
 	case *Message_DataValue:
-		_ = b.EncodeVarint(9<<3 | proto.WireBytes)
+		_ = b.EncodeVarint(10<<3 | proto.WireBytes)
 		_ = b.EncodeStringBytes(x.DataValue)
 	case nil:
 	default:
@@ -319,28 +335,28 @@ func _Message_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
 func _Message_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
 	m := msg.(*Message)
 	switch tag {
-	case 6: // value.FloatValue
+	case 7: // value.floatValue
 		if wire != proto.WireFixed64 {
 			return true, proto.ErrInternalBadWireType
 		}
 		x, err := b.DecodeFixed64()
 		m.Value = &Message_FloatValue{math.Float64frombits(x)}
 		return true, err
-	case 7: // value.StringValue
+	case 8: // value.stringValue
 		if wire != proto.WireBytes {
 			return true, proto.ErrInternalBadWireType
 		}
 		x, err := b.DecodeStringBytes()
 		m.Value = &Message_StringValue{x}
 		return true, err
-	case 8: // value.BoolValue
+	case 9: // value.boolValue
 		if wire != proto.WireVarint {
 			return true, proto.ErrInternalBadWireType
 		}
 		x, err := b.DecodeVarint()
 		m.Value = &Message_BoolValue{x != 0}
 		return true, err
-	case 9: // value.DataValue
+	case 10: // value.dataValue
 		if wire != proto.WireBytes {
 			return true, proto.ErrInternalBadWireType
 		}
@@ -379,7 +395,7 @@ func _Message_OneofSizer(msg proto.Message) (n int) {
 
 // SumValue is a simple wrapper around the double value.
 type SumValue struct {
-	Value                float64  `protobuf:"fixed64,1,opt,name=Value,proto3" json:"Value,omitempty"`
+	Value                float64  `protobuf:"fixed64,1,opt,name=value,proto3" json:"value,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -389,7 +405,7 @@ func (m *SumValue) Reset()         { *m = SumValue{} }
 func (m *SumValue) String() string { return proto.CompactTextString(m) }
 func (*SumValue) ProtoMessage()    {}
 func (*SumValue) Descriptor() ([]byte, []int) {
-	return fileDescriptor_message_3605d564124e586d, []int{2}
+	return fileDescriptor_33c57e4bae7b9afd, []int{2}
 }
 func (m *SumValue) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -406,8 +422,8 @@ func (m *SumValue) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 		return b[:n], nil
 	}
 }
-func (dst *SumValue) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_SumValue.Merge(dst, src)
+func (m *SumValue) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SumValue.Merge(m, src)
 }
 func (m *SumValue) XXX_Size() int {
 	return m.Size()
@@ -430,6 +446,36 @@ func init() {
 	proto.RegisterType((*Message)(nil), "mainflux.Message")
 	proto.RegisterType((*SumValue)(nil), "mainflux.SumValue")
 }
+
+func init() { proto.RegisterFile("message.proto", fileDescriptor_33c57e4bae7b9afd) }
+
+var fileDescriptor_33c57e4bae7b9afd = []byte{
+	// 368 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xc4, 0x92, 0x4f, 0x8e, 0xda, 0x30,
+	0x18, 0xc5, 0xe3, 0xf2, 0x27, 0xc9, 0x17, 0xa8, 0x2a, 0xab, 0x0b, 0xab, 0xaa, 0x22, 0x2b, 0xab,
+	0xac, 0xb2, 0x68, 0x6f, 0xc0, 0x8a, 0x4d, 0x37, 0x06, 0x75, 0xef, 0x04, 0x03, 0x51, 0x1d, 0x3b,
+	0x22, 0x76, 0x5b, 0x6e, 0x32, 0x47, 0x98, 0x23, 0xcc, 0x11, 0x66, 0x39, 0x47, 0x18, 0x31, 0x17,
+	0x19, 0xd9, 0x21, 0x90, 0x1b, 0xcc, 0xee, 0xbd, 0xdf, 0xfb, 0x3e, 0xfb, 0x19, 0x02, 0xcb, 0x46,
+	0x74, 0x1d, 0x3f, 0x88, 0xa2, 0x3d, 0x69, 0xa3, 0x71, 0xd4, 0xf0, 0x5a, 0xed, 0xa5, 0xfd, 0x9f,
+	0x3d, 0x21, 0x00, 0xc6, 0xff, 0xfd, 0xea, 0x63, 0x4c, 0x20, 0xac, 0x8e, 0x5c, 0x29, 0x21, 0x09,
+	0xa2, 0x28, 0x8f, 0xd9, 0x60, 0xf1, 0x37, 0x88, 0x3a, 0x5b, 0x1a, 0xdd, 0xd6, 0x15, 0xf9, 0xe4,
+	0xa3, 0x9b, 0xc7, 0xdf, 0x21, 0x6e, 0x6d, 0x29, 0xeb, 0xee, 0x28, 0x4e, 0x64, 0xe2, 0xc3, 0x3b,
+	0x70, 0x9b, 0xfe, 0xd6, 0x4a, 0x4b, 0x32, 0xed, 0x37, 0x07, 0x8f, 0x29, 0x24, 0x95, 0x56, 0x46,
+	0x28, 0xb3, 0x3d, 0xb7, 0x82, 0xcc, 0x7c, 0x3c, 0x46, 0xae, 0x51, 0xcb, 0xcf, 0x52, 0xf3, 0x1d,
+	0x99, 0x53, 0x94, 0x2f, 0xd8, 0x60, 0xb3, 0xc7, 0x09, 0x84, 0x1f, 0xd5, 0x1b, 0xc3, 0x54, 0xf1,
+	0x66, 0x28, 0xec, 0xb5, 0x63, 0x56, 0xd5, 0xc6, 0xd7, 0x8c, 0x99, 0xd7, 0x98, 0x02, 0xec, 0xa5,
+	0xe6, 0xe6, 0x37, 0x97, 0x56, 0x90, 0x90, 0xa2, 0x1c, 0xad, 0x03, 0x36, 0x62, 0x38, 0x83, 0xa4,
+	0x33, 0xa7, 0x5a, 0x1d, 0xfa, 0x91, 0xc8, 0x2d, 0xaf, 0x03, 0x36, 0x86, 0x38, 0x85, 0xb8, 0xd4,
+	0x5a, 0xf6, 0x13, 0x31, 0x45, 0x79, 0xb4, 0x0e, 0xd8, 0x1d, 0xb9, 0x7c, 0xc7, 0x0d, 0xef, 0x73,
+	0xb8, 0x9e, 0x70, 0x47, 0xb8, 0x80, 0xe8, 0xaf, 0x13, 0x1b, 0xdb, 0x90, 0x84, 0xa2, 0x3c, 0xf9,
+	0x81, 0x8b, 0xe1, 0x0b, 0x28, 0x36, 0xb6, 0xf1, 0x53, 0xec, 0x36, 0xe3, 0x5e, 0x62, 0xea, 0x46,
+	0x90, 0x85, 0xeb, 0xcb, 0xbc, 0xc6, 0x29, 0x80, 0x6d, 0x77, 0xdc, 0x88, 0xad, 0x4b, 0x96, 0x3e,
+	0x19, 0x11, 0xb7, 0x23, 0x6b, 0xf5, 0x87, 0x7c, 0xee, 0x5f, 0xef, 0xf4, 0x2a, 0x84, 0x99, 0x3f,
+	0x33, 0xa3, 0x10, 0x0d, 0xd7, 0xe0, 0xaf, 0x57, 0xe8, 0xff, 0x28, 0xc4, 0x7a, 0xb3, 0xfa, 0xf2,
+	0x7c, 0x49, 0xd1, 0xcb, 0x25, 0x45, 0xaf, 0x97, 0x14, 0x3d, 0xbc, 0xa5, 0x41, 0x39, 0xf7, 0x3f,
+	0xf6, 0xcf, 0xf7, 0x00, 0x00, 0x00, 0xff, 0xff, 0x21, 0x23, 0xc7, 0x3c, 0xbb, 0x02, 0x00, 0x00,
+}
+
 func (m *RawMessage) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
@@ -451,26 +497,32 @@ func (m *RawMessage) MarshalTo(dAtA []byte) (int, error) {
 		i = encodeVarintMessage(dAtA, i, uint64(len(m.Channel)))
 		i += copy(dAtA[i:], m.Channel)
 	}
-	if len(m.Publisher) > 0 {
+	if len(m.Subtopic) > 0 {
 		dAtA[i] = 0x12
+		i++
+		i = encodeVarintMessage(dAtA, i, uint64(len(m.Subtopic)))
+		i += copy(dAtA[i:], m.Subtopic)
+	}
+	if len(m.Publisher) > 0 {
+		dAtA[i] = 0x1a
 		i++
 		i = encodeVarintMessage(dAtA, i, uint64(len(m.Publisher)))
 		i += copy(dAtA[i:], m.Publisher)
 	}
 	if len(m.Protocol) > 0 {
-		dAtA[i] = 0x1a
+		dAtA[i] = 0x22
 		i++
 		i = encodeVarintMessage(dAtA, i, uint64(len(m.Protocol)))
 		i += copy(dAtA[i:], m.Protocol)
 	}
 	if len(m.ContentType) > 0 {
-		dAtA[i] = 0x22
+		dAtA[i] = 0x2a
 		i++
 		i = encodeVarintMessage(dAtA, i, uint64(len(m.ContentType)))
 		i += copy(dAtA[i:], m.ContentType)
 	}
 	if len(m.Payload) > 0 {
-		dAtA[i] = 0x2a
+		dAtA[i] = 0x32
 		i++
 		i = encodeVarintMessage(dAtA, i, uint64(len(m.Payload)))
 		i += copy(dAtA[i:], m.Payload)
@@ -502,61 +554,67 @@ func (m *Message) MarshalTo(dAtA []byte) (int, error) {
 		i = encodeVarintMessage(dAtA, i, uint64(len(m.Channel)))
 		i += copy(dAtA[i:], m.Channel)
 	}
-	if len(m.Publisher) > 0 {
+	if len(m.Subtopic) > 0 {
 		dAtA[i] = 0x12
+		i++
+		i = encodeVarintMessage(dAtA, i, uint64(len(m.Subtopic)))
+		i += copy(dAtA[i:], m.Subtopic)
+	}
+	if len(m.Publisher) > 0 {
+		dAtA[i] = 0x1a
 		i++
 		i = encodeVarintMessage(dAtA, i, uint64(len(m.Publisher)))
 		i += copy(dAtA[i:], m.Publisher)
 	}
 	if len(m.Protocol) > 0 {
-		dAtA[i] = 0x1a
+		dAtA[i] = 0x22
 		i++
 		i = encodeVarintMessage(dAtA, i, uint64(len(m.Protocol)))
 		i += copy(dAtA[i:], m.Protocol)
 	}
 	if len(m.Name) > 0 {
-		dAtA[i] = 0x22
+		dAtA[i] = 0x2a
 		i++
 		i = encodeVarintMessage(dAtA, i, uint64(len(m.Name)))
 		i += copy(dAtA[i:], m.Name)
 	}
 	if len(m.Unit) > 0 {
-		dAtA[i] = 0x2a
+		dAtA[i] = 0x32
 		i++
 		i = encodeVarintMessage(dAtA, i, uint64(len(m.Unit)))
 		i += copy(dAtA[i:], m.Unit)
 	}
 	if m.Value != nil {
-		nn1, err := m.Value.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
+		nn1, err1 := m.Value.MarshalTo(dAtA[i:])
+		if err1 != nil {
+			return 0, err1
 		}
 		i += nn1
 	}
 	if m.ValueSum != nil {
-		dAtA[i] = 0x52
+		dAtA[i] = 0x5a
 		i++
 		i = encodeVarintMessage(dAtA, i, uint64(m.ValueSum.Size()))
-		n2, err := m.ValueSum.MarshalTo(dAtA[i:])
-		if err != nil {
-			return 0, err
+		n2, err2 := m.ValueSum.MarshalTo(dAtA[i:])
+		if err2 != nil {
+			return 0, err2
 		}
 		i += n2
 	}
 	if m.Time != 0 {
-		dAtA[i] = 0x59
+		dAtA[i] = 0x61
 		i++
 		encoding_binary.LittleEndian.PutUint64(dAtA[i:], uint64(math.Float64bits(float64(m.Time))))
 		i += 8
 	}
 	if m.UpdateTime != 0 {
-		dAtA[i] = 0x61
+		dAtA[i] = 0x69
 		i++
 		encoding_binary.LittleEndian.PutUint64(dAtA[i:], uint64(math.Float64bits(float64(m.UpdateTime))))
 		i += 8
 	}
 	if len(m.Link) > 0 {
-		dAtA[i] = 0x6a
+		dAtA[i] = 0x72
 		i++
 		i = encodeVarintMessage(dAtA, i, uint64(len(m.Link)))
 		i += copy(dAtA[i:], m.Link)
@@ -569,7 +627,7 @@ func (m *Message) MarshalTo(dAtA []byte) (int, error) {
 
 func (m *Message_FloatValue) MarshalTo(dAtA []byte) (int, error) {
 	i := 0
-	dAtA[i] = 0x31
+	dAtA[i] = 0x39
 	i++
 	encoding_binary.LittleEndian.PutUint64(dAtA[i:], uint64(math.Float64bits(float64(m.FloatValue))))
 	i += 8
@@ -577,7 +635,7 @@ func (m *Message_FloatValue) MarshalTo(dAtA []byte) (int, error) {
 }
 func (m *Message_StringValue) MarshalTo(dAtA []byte) (int, error) {
 	i := 0
-	dAtA[i] = 0x3a
+	dAtA[i] = 0x42
 	i++
 	i = encodeVarintMessage(dAtA, i, uint64(len(m.StringValue)))
 	i += copy(dAtA[i:], m.StringValue)
@@ -585,7 +643,7 @@ func (m *Message_StringValue) MarshalTo(dAtA []byte) (int, error) {
 }
 func (m *Message_BoolValue) MarshalTo(dAtA []byte) (int, error) {
 	i := 0
-	dAtA[i] = 0x40
+	dAtA[i] = 0x48
 	i++
 	if m.BoolValue {
 		dAtA[i] = 1
@@ -597,7 +655,7 @@ func (m *Message_BoolValue) MarshalTo(dAtA []byte) (int, error) {
 }
 func (m *Message_DataValue) MarshalTo(dAtA []byte) (int, error) {
 	i := 0
-	dAtA[i] = 0x4a
+	dAtA[i] = 0x52
 	i++
 	i = encodeVarintMessage(dAtA, i, uint64(len(m.DataValue)))
 	i += copy(dAtA[i:], m.DataValue)
@@ -649,6 +707,10 @@ func (m *RawMessage) Size() (n int) {
 	if l > 0 {
 		n += 1 + l + sovMessage(uint64(l))
 	}
+	l = len(m.Subtopic)
+	if l > 0 {
+		n += 1 + l + sovMessage(uint64(l))
+	}
 	l = len(m.Publisher)
 	if l > 0 {
 		n += 1 + l + sovMessage(uint64(l))
@@ -678,6 +740,10 @@ func (m *Message) Size() (n int) {
 	var l int
 	_ = l
 	l = len(m.Channel)
+	if l > 0 {
+		n += 1 + l + sovMessage(uint64(l))
+	}
+	l = len(m.Subtopic)
 	if l > 0 {
 		n += 1 + l + sovMessage(uint64(l))
 	}
@@ -801,7 +867,7 @@ func (m *RawMessage) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -829,7 +895,7 @@ func (m *RawMessage) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -839,12 +905,47 @@ func (m *RawMessage) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthMessage
 			}
 			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMessage
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
 			m.Channel = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Subtopic", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMessage
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthMessage
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMessage
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Subtopic = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Publisher", wireType)
 			}
@@ -858,7 +959,7 @@ func (m *RawMessage) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -868,12 +969,15 @@ func (m *RawMessage) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthMessage
 			}
 			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMessage
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
 			m.Publisher = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 3:
+		case 4:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Protocol", wireType)
 			}
@@ -887,7 +991,7 @@ func (m *RawMessage) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -897,12 +1001,15 @@ func (m *RawMessage) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthMessage
 			}
 			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMessage
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
 			m.Protocol = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 4:
+		case 5:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ContentType", wireType)
 			}
@@ -916,7 +1023,7 @@ func (m *RawMessage) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -926,12 +1033,15 @@ func (m *RawMessage) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthMessage
 			}
 			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMessage
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
 			m.ContentType = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 5:
+		case 6:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Payload", wireType)
 			}
@@ -945,7 +1055,7 @@ func (m *RawMessage) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				byteLen |= (int(b) & 0x7F) << shift
+				byteLen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -954,6 +1064,9 @@ func (m *RawMessage) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthMessage
 			}
 			postIndex := iNdEx + byteLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMessage
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -969,6 +1082,9 @@ func (m *RawMessage) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthMessage
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthMessage
 			}
 			if (iNdEx + skippy) > l {
@@ -999,7 +1115,7 @@ func (m *Message) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -1027,7 +1143,7 @@ func (m *Message) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1037,12 +1153,47 @@ func (m *Message) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthMessage
 			}
 			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMessage
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
 			m.Channel = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Subtopic", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowMessage
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthMessage
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMessage
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Subtopic = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 3:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Publisher", wireType)
 			}
@@ -1056,7 +1207,7 @@ func (m *Message) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1066,12 +1217,15 @@ func (m *Message) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthMessage
 			}
 			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMessage
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
 			m.Publisher = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 3:
+		case 4:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Protocol", wireType)
 			}
@@ -1085,7 +1239,7 @@ func (m *Message) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1095,12 +1249,15 @@ func (m *Message) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthMessage
 			}
 			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMessage
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
 			m.Protocol = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 4:
+		case 5:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Name", wireType)
 			}
@@ -1114,7 +1271,7 @@ func (m *Message) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1124,12 +1281,15 @@ func (m *Message) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthMessage
 			}
 			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMessage
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
 			m.Name = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 5:
+		case 6:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Unit", wireType)
 			}
@@ -1143,7 +1303,7 @@ func (m *Message) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1153,12 +1313,15 @@ func (m *Message) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthMessage
 			}
 			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMessage
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
 			m.Unit = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
-		case 6:
+		case 7:
 			if wireType != 1 {
 				return fmt.Errorf("proto: wrong wireType = %d for field FloatValue", wireType)
 			}
@@ -1169,7 +1332,7 @@ func (m *Message) Unmarshal(dAtA []byte) error {
 			v = uint64(encoding_binary.LittleEndian.Uint64(dAtA[iNdEx:]))
 			iNdEx += 8
 			m.Value = &Message_FloatValue{float64(math.Float64frombits(v))}
-		case 7:
+		case 8:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field StringValue", wireType)
 			}
@@ -1183,7 +1346,7 @@ func (m *Message) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1193,12 +1356,15 @@ func (m *Message) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthMessage
 			}
 			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMessage
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
 			m.Value = &Message_StringValue{string(dAtA[iNdEx:postIndex])}
 			iNdEx = postIndex
-		case 8:
+		case 9:
 			if wireType != 0 {
 				return fmt.Errorf("proto: wrong wireType = %d for field BoolValue", wireType)
 			}
@@ -1212,14 +1378,14 @@ func (m *Message) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				v |= (int(b) & 0x7F) << shift
+				v |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
 			b := bool(v != 0)
 			m.Value = &Message_BoolValue{b}
-		case 9:
+		case 10:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field DataValue", wireType)
 			}
@@ -1233,7 +1399,7 @@ func (m *Message) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1243,12 +1409,15 @@ func (m *Message) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthMessage
 			}
 			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMessage
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
 			m.Value = &Message_DataValue{string(dAtA[iNdEx:postIndex])}
 			iNdEx = postIndex
-		case 10:
+		case 11:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field ValueSum", wireType)
 			}
@@ -1262,7 +1431,7 @@ func (m *Message) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				msglen |= (int(b) & 0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1271,6 +1440,9 @@ func (m *Message) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthMessage
 			}
 			postIndex := iNdEx + msglen
+			if postIndex < 0 {
+				return ErrInvalidLengthMessage
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -1281,7 +1453,7 @@ func (m *Message) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			iNdEx = postIndex
-		case 11:
+		case 12:
 			if wireType != 1 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Time", wireType)
 			}
@@ -1292,7 +1464,7 @@ func (m *Message) Unmarshal(dAtA []byte) error {
 			v = uint64(encoding_binary.LittleEndian.Uint64(dAtA[iNdEx:]))
 			iNdEx += 8
 			m.Time = float64(math.Float64frombits(v))
-		case 12:
+		case 13:
 			if wireType != 1 {
 				return fmt.Errorf("proto: wrong wireType = %d for field UpdateTime", wireType)
 			}
@@ -1303,7 +1475,7 @@ func (m *Message) Unmarshal(dAtA []byte) error {
 			v = uint64(encoding_binary.LittleEndian.Uint64(dAtA[iNdEx:]))
 			iNdEx += 8
 			m.UpdateTime = float64(math.Float64frombits(v))
-		case 13:
+		case 14:
 			if wireType != 2 {
 				return fmt.Errorf("proto: wrong wireType = %d for field Link", wireType)
 			}
@@ -1317,7 +1489,7 @@ func (m *Message) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= (uint64(b) & 0x7F) << shift
+				stringLen |= uint64(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
@@ -1327,6 +1499,9 @@ func (m *Message) Unmarshal(dAtA []byte) error {
 				return ErrInvalidLengthMessage
 			}
 			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthMessage
+			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
@@ -1339,6 +1514,9 @@ func (m *Message) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthMessage
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthMessage
 			}
 			if (iNdEx + skippy) > l {
@@ -1369,7 +1547,7 @@ func (m *SumValue) Unmarshal(dAtA []byte) error {
 			}
 			b := dAtA[iNdEx]
 			iNdEx++
-			wire |= (uint64(b) & 0x7F) << shift
+			wire |= uint64(b&0x7F) << shift
 			if b < 0x80 {
 				break
 			}
@@ -1401,6 +1579,9 @@ func (m *SumValue) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			if skippy < 0 {
+				return ErrInvalidLengthMessage
+			}
+			if (iNdEx + skippy) < 0 {
 				return ErrInvalidLengthMessage
 			}
 			if (iNdEx + skippy) > l {
@@ -1470,8 +1651,11 @@ func skipMessage(dAtA []byte) (n int, err error) {
 					break
 				}
 			}
-			iNdEx += length
 			if length < 0 {
+				return 0, ErrInvalidLengthMessage
+			}
+			iNdEx += length
+			if iNdEx < 0 {
 				return 0, ErrInvalidLengthMessage
 			}
 			return iNdEx, nil
@@ -1502,6 +1686,9 @@ func skipMessage(dAtA []byte) (n int, err error) {
 					return 0, err
 				}
 				iNdEx = start + next
+				if iNdEx < 0 {
+					return 0, ErrInvalidLengthMessage
+				}
 			}
 			return iNdEx, nil
 		case 4:
@@ -1520,32 +1707,3 @@ var (
 	ErrInvalidLengthMessage = fmt.Errorf("proto: negative length found during unmarshaling")
 	ErrIntOverflowMessage   = fmt.Errorf("proto: integer overflow")
 )
-
-func init() { proto.RegisterFile("message.proto", fileDescriptor_message_3605d564124e586d) }
-
-var fileDescriptor_message_3605d564124e586d = []byte{
-	// 358 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x92, 0x4f, 0x4e, 0xf3, 0x30,
-	0x14, 0xc4, 0xe3, 0xaf, 0x7f, 0x92, 0xbc, 0xb4, 0xd2, 0x27, 0x8b, 0x85, 0x85, 0x50, 0x64, 0x65,
-	0x95, 0x55, 0x16, 0x70, 0x83, 0x16, 0xa1, 0x2e, 0x00, 0x55, 0x6e, 0xcb, 0xde, 0xa5, 0xa6, 0x8d,
-	0x70, 0xec, 0xaa, 0x75, 0x80, 0xde, 0x81, 0x03, 0xb0, 0xe0, 0x40, 0x2c, 0x39, 0x02, 0x2a, 0x17,
-	0x41, 0x76, 0x48, 0x9b, 0x0b, 0xb0, 0x9b, 0x37, 0xbf, 0xe7, 0xf1, 0x58, 0x09, 0xf4, 0x0b, 0xb1,
-	0xdd, 0xf2, 0xa5, 0xc8, 0xd6, 0x1b, 0x6d, 0x34, 0x0e, 0x0a, 0x9e, 0xab, 0x07, 0x59, 0xbe, 0x24,
-	0xef, 0x08, 0x80, 0xf1, 0xe7, 0x9b, 0x0a, 0x63, 0x02, 0xfe, 0x70, 0xc5, 0x95, 0x12, 0x92, 0x20,
-	0x8a, 0xd2, 0x90, 0xd5, 0x23, 0x3e, 0x83, 0x70, 0x5c, 0xce, 0x65, 0xbe, 0x5d, 0x89, 0x0d, 0xf9,
-	0xe7, 0xd8, 0xd1, 0xc0, 0xa7, 0x10, 0x8c, 0x6d, 0xf2, 0xbd, 0x96, 0xa4, 0xe5, 0xe0, 0x61, 0xc6,
-	0x14, 0xa2, 0xa1, 0x56, 0x46, 0x28, 0x33, 0xdd, 0xad, 0x05, 0x69, 0x3b, 0xdc, 0xb4, 0xec, 0xad,
-	0x63, 0xbe, 0x93, 0x9a, 0x2f, 0x48, 0x87, 0xa2, 0xb4, 0xc7, 0xea, 0x31, 0x79, 0x6d, 0x81, 0xff,
-	0x97, 0xdd, 0x30, 0xb4, 0x6f, 0x79, 0x51, 0x97, 0x72, 0xda, 0x7a, 0x33, 0x95, 0x1b, 0x57, 0x25,
-	0x64, 0x4e, 0x63, 0x0a, 0x70, 0x25, 0x35, 0x37, 0x77, 0x5c, 0x96, 0x82, 0x74, 0x29, 0x4a, 0xd1,
-	0xc8, 0x63, 0x0d, 0x0f, 0x27, 0x10, 0x4d, 0xcc, 0x26, 0x57, 0xcb, 0x6a, 0xc5, 0xb7, 0x87, 0x47,
-	0x1e, 0x6b, 0x9a, 0x38, 0x86, 0x70, 0xa0, 0xb5, 0xac, 0x36, 0x02, 0x8a, 0xd2, 0x60, 0xe4, 0xb1,
-	0xa3, 0x65, 0xf9, 0x25, 0x37, 0xbc, 0xe2, 0xe1, 0x6f, 0xc2, 0xd1, 0xc2, 0x19, 0x04, 0x4e, 0x4c,
-	0xca, 0x82, 0x00, 0x45, 0x69, 0x74, 0x8e, 0xb3, 0xfa, 0x4b, 0x66, 0x93, 0xb2, 0x70, 0x90, 0x1d,
-	0x76, 0xec, 0x4b, 0xa6, 0x79, 0x21, 0x48, 0x64, 0xfb, 0x32, 0xa7, 0x71, 0x0c, 0x30, 0x5b, 0x2f,
-	0xb8, 0x11, 0x8e, 0xf4, 0x1c, 0x69, 0x38, 0xf6, 0xcc, 0x75, 0xae, 0x1e, 0x49, 0xbf, 0x7a, 0xbd,
-	0xd5, 0x03, 0x1f, 0x3a, 0x4f, 0x36, 0x33, 0xa1, 0x10, 0xd4, 0xd7, 0xe0, 0x13, 0xe8, 0x54, 0x45,
-	0x91, 0xcb, 0xa8, 0x86, 0xc1, 0xff, 0x8f, 0x7d, 0x8c, 0x3e, 0xf7, 0x31, 0xfa, 0xda, 0xc7, 0xe8,
-	0xed, 0x3b, 0xf6, 0xe6, 0x5d, 0xf7, 0xcb, 0x5d, 0xfc, 0x04, 0x00, 0x00, 0xff, 0xff, 0x41, 0xd3,
-	0x14, 0x1c, 0x83, 0x02, 0x00, 0x00,
-}

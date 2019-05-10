@@ -41,9 +41,8 @@ func TestChannelSave(t *testing.T) {
 		{
 			desc: "create invalid channel",
 			channel: things.Channel{
-				ID:       uuid.New().ID(),
-				Owner:    email,
-				Metadata: "invalid",
+				ID:    "invalid",
+				Owner: email,
 			},
 			err: things.ErrMalformedEntity,
 		},
@@ -75,15 +74,6 @@ func TestChannelUpdate(t *testing.T) {
 			desc:    "update existing channel",
 			channel: c,
 			err:     nil,
-		},
-		{
-			desc: "update channel with invalid data",
-			channel: things.Channel{
-				ID:       c.ID,
-				Owner:    email,
-				Metadata: "invalid",
-			},
-			err: things.ErrMalformedEntity,
 		},
 		{
 			desc: "update non-existing channel with existing user",
@@ -157,6 +147,11 @@ func TestSingleChannelRetrieval(t *testing.T) {
 			ID:    c.ID,
 			err:   things.ErrNotFound,
 		},
+		"retrieve channel with malformed ID": {
+			owner: c.Owner,
+			ID:    wrongValue,
+			err:   things.ErrNotFound,
+		},
 	}
 
 	for desc, tc := range cases {
@@ -221,7 +216,6 @@ func TestMultiChannelRetrievalByThing(t *testing.T) {
 	tid, err := thingRepo.Save(things.Thing{
 		ID:    idp.ID(),
 		Owner: email,
-		Type:  "device",
 	})
 	require.Nil(t, err, fmt.Sprintf("unexpected error: %s", err))
 	n := uint64(10)
@@ -307,7 +301,7 @@ func TestConnect(t *testing.T) {
 		ID:       uuid.New().ID(),
 		Owner:    email,
 		Key:      uuid.New().ID(),
-		Metadata: "{}",
+		Metadata: map[string]interface{}{},
 	}
 	thingID, _ := thingRepo.Save(thing)
 
@@ -374,7 +368,7 @@ func TestDisconnect(t *testing.T) {
 		ID:       uuid.New().ID(),
 		Owner:    email,
 		Key:      uuid.New().ID(),
-		Metadata: "{}",
+		Metadata: map[string]interface{}{},
 	}
 	thingID, _ := thingRepo.Save(thing)
 

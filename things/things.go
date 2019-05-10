@@ -7,17 +7,14 @@
 
 package things
 
-import "strings"
-
 // Thing represents a Mainflux thing. Each thing is owned by one user, and
 // it is assigned with the unique identifier and (temporary) access key.
 type Thing struct {
 	ID       string
 	Owner    string
-	Type     string
 	Name     string
 	Key      string
-	Metadata string
+	Metadata map[string]interface{}
 }
 
 // ThingsPage contains page related metadata as well as list of things that
@@ -27,17 +24,8 @@ type ThingsPage struct {
 	Things []Thing
 }
 
-var thingTypes = map[string]bool{
-	"app":    true,
-	"device": true,
-}
-
 // Validate returns an error if thing representation is invalid.
 func (c *Thing) Validate() error {
-	if c.Type = strings.ToLower(c.Type); !thingTypes[c.Type] {
-		return ErrMalformedEntity
-	}
-
 	return nil
 }
 
@@ -50,6 +38,10 @@ type ThingRepository interface {
 	// Update performs an update to the existing thing. A non-nil error is
 	// returned to indicate operation failure.
 	Update(Thing) error
+
+	// UpdateKey updates key value of the existing thing. A non-nil error is
+	// returned to indicate operation failure.
+	UpdateKey(string, string, string) error
 
 	// RetrieveByID retrieves the thing having the provided identifier, that is owned
 	// by the specified user.

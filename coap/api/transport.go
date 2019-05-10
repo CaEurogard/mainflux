@@ -16,6 +16,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/go-zoo/bone"
@@ -33,11 +34,15 @@ import (
 const protocol = "coap"
 
 var (
-	errBadRequest = errors.New("bad request")
-	errBadOption  = errors.New("bad option")
-	auth          mainflux.ThingsServiceClient
-	logger        log.Logger
-	pingPeriod    time.Duration
+	errBadRequest        = errors.New("bad request")
+	errBadOption         = errors.New("bad option")
+	errMalformedSubtopic = errors.New("malformed subtopic")
+)
+
+var (
+	auth       mainflux.ThingsServiceClient
+	logger     log.Logger
+	pingPeriod time.Duration
 )
 
 type handler func(conn *net.UDPConn, addr *net.UDPAddr, msg *gocoap.Message) *gocoap.Message
@@ -68,7 +73,9 @@ func MakeCOAPHandler(svc coap.Service, tc mainflux.ThingsServiceClient, l log.Lo
 	pingPeriod = pp
 	r := mux.NewRouter()
 	r.Handle("/channels/{id}/messages", gocoap.FuncHandler(receive(svc))).Methods(gocoap.POST)
+	r.Handle("/channels/{id}/messages/{subtopic:[^?]*}", gocoap.FuncHandler(receive(svc))).Methods(gocoap.POST)
 	r.Handle("/channels/{id}/messages", gocoap.FuncHandler(observe(svc, responses)))
+	r.Handle("/channels/{id}/messages/{subtopic:[^?]*}", gocoap.FuncHandler(observe(svc, responses)))
 	r.NotFoundHandler = gocoap.FuncHandler(notFoundHandler)
 
 	return r
@@ -109,6 +116,32 @@ func authorize(msg *gocoap.Message, res *gocoap.Message, cid string) (string, er
 	return id.GetValue(), nil
 }
 
+func fmtSubtopic(subtopic string) (string, error) {
+	if subtopic == "" {
+		return subtopic, nil
+	}
+
+	subtopic = strings.Replace(subtopic, "/", ".", -1)
+
+	elems := strings.Split(subtopic, ".")
+	filteredElems := []string{}
+	for _, elem := range elems {
+		if elem == "" {
+			continue
+		}
+
+		if len(elem) > 1 && (strings.Contains(elem, "*") || strings.Contains(elem, ">")) {
+			return "", errMalformedSubtopic
+		}
+
+		filteredElems = append(filteredElems, elem)
+	}
+
+	subtopic = strings.Join(filteredElems, ".")
+
+	return subtopic, nil
+}
+
 func receive(svc coap.Service) handler {
 	return func(conn *net.UDPConn, addr *net.UDPAddr, msg *gocoap.Message) *gocoap.Message {
 		// By default message is NonConfirmable, so
@@ -139,6 +172,12 @@ func receive(svc coap.Service) handler {
 			return res
 		}
 
+		subtopic, err := fmtSubtopic(mux.Var(msg, "subtopic"))
+		if err != nil {
+			res.Code = gocoap.BadRequest
+			return res
+		}
+
 		publisher, err := authorize(msg, res, chanID)
 		if err != nil {
 			res.Code = gocoap.Forbidden
@@ -147,6 +186,7 @@ func receive(svc coap.Service) handler {
 
 		rawMsg := mainflux.RawMessage{
 			Channel:   chanID,
+			Subtopic:  subtopic,
 			Publisher: publisher,
 			Protocol:  protocol,
 			Payload:   msg.Payload,
@@ -177,6 +217,12 @@ func observe(svc coap.Service, responses chan<- string) handler {
 			return res
 		}
 
+		subtopic, err := fmtSubtopic(mux.Var(msg, "subtopic"))
+		if err != nil {
+			res.Code = gocoap.BadRequest
+			return res
+		}
+
 		publisher, err := authorize(msg, res, chanID)
 		if err != nil {
 			res.Code = gocoap.Forbidden
@@ -198,7 +244,7 @@ func observe(svc coap.Service, responses chan<- string) handler {
 		if value, ok := msg.Option(gocoap.Observe).(uint32); ok && value == 0 {
 			res.AddOption(gocoap.Observe, 1)
 			o := coap.NewObserver()
-			if err := svc.Subscribe(chanID, obsID, o); err != nil {
+			if err := svc.Subscribe(chanID, subtopic, obsID, o); err != nil {
 				logger.Warn(fmt.Sprintf("Failed to subscribe to NATS subject: %s", err))
 				res.Code = gocoap.InternalServerError
 				return res

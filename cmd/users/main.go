@@ -8,7 +8,6 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
 	"log"
 	"net"
@@ -20,6 +19,7 @@ import (
 	"google.golang.org/grpc/credentials"
 
 	kitprometheus "github.com/go-kit/kit/metrics/prometheus"
+	"github.com/jmoiron/sqlx"
 	"github.com/mainflux/mainflux"
 	"github.com/mainflux/mainflux/logger"
 	"github.com/mainflux/mainflux/users"
@@ -127,7 +127,7 @@ func loadConfig() config {
 	}
 }
 
-func connectToDB(dbConfig postgres.Config, logger logger.Logger) *sql.DB {
+func connectToDB(dbConfig postgres.Config, logger logger.Logger) *sqlx.DB {
 	db, err := postgres.Connect(dbConfig)
 	if err != nil {
 		logger.Error(fmt.Sprintf("Failed to connect to postgres: %s", err))
@@ -136,7 +136,7 @@ func connectToDB(dbConfig postgres.Config, logger logger.Logger) *sql.DB {
 	return db
 }
 
-func newService(db *sql.DB, secret string, logger logger.Logger) users.Service {
+func newService(db *sqlx.DB, secret string, logger logger.Logger) users.Service {
 	repo := postgres.New(db)
 	hasher := bcrypt.New()
 	idp := jwt.New(secret)
@@ -164,10 +164,10 @@ func newService(db *sql.DB, secret string, logger logger.Logger) users.Service {
 func startHTTPServer(svc users.Service, port string, certFile string, keyFile string, logger logger.Logger, errs chan error) {
 	p := fmt.Sprintf(":%s", port)
 	if certFile != "" || keyFile != "" {
-		logger.Info(fmt.Sprintf("Things service started using https, cert %s key %s, exposed port %s", certFile, keyFile, port))
+		logger.Info(fmt.Sprintf("Users service started using https, cert %s key %s, exposed port %s", certFile, keyFile, port))
 		errs <- http.ListenAndServeTLS(p, certFile, keyFile, httpapi.MakeHandler(svc, logger))
 	} else {
-		logger.Info(fmt.Sprintf("Things service started using http, exposed port %s", port))
+		logger.Info(fmt.Sprintf("Users service started using http, exposed port %s", port))
 		errs <- http.ListenAndServe(p, httpapi.MakeHandler(svc, logger))
 	}
 }
@@ -183,7 +183,7 @@ func startGRPCServer(svc users.Service, port string, certFile string, keyFile st
 	if certFile != "" || keyFile != "" {
 		creds, err := credentials.NewServerTLSFromFile(certFile, keyFile)
 		if err != nil {
-			logger.Error(fmt.Sprintf("Failed to load things certificates: %s", err))
+			logger.Error(fmt.Sprintf("Failed to load users certificates: %s", err))
 			os.Exit(1)
 		}
 		logger.Info(fmt.Sprintf("Users gRPC service started using https on port %s with cert %s key %s", port, certFile, keyFile))

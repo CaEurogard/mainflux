@@ -15,8 +15,16 @@ import (
 	"strings"
 )
 
-func (sdk mfSDK) SendMessage(chanID, msg, token string) error {
-	endpoint := fmt.Sprintf("channels/%s/messages", chanID)
+func (sdk mfSDK) SendMessage(chanName, msg, token string) error {
+
+	chanNameParts := strings.SplitN(chanName, ".", 2)
+	chanID := chanNameParts[0]
+	subtopicPart := ""
+	if len(chanNameParts) == 2 {
+		subtopicPart = fmt.Sprintf("/%s", strings.Replace(chanNameParts[1], ".", "/", -1))
+	}
+
+	endpoint := fmt.Sprintf("channels/%s/messages%s", chanID, subtopicPart)
 	url := createURL(sdk.baseURL, sdk.httpAdapterPrefix, endpoint)
 
 	req, err := http.NewRequest(http.MethodPost, url, strings.NewReader(msg))
@@ -43,42 +51,54 @@ func (sdk mfSDK) SendMessage(chanID, msg, token string) error {
 	return nil
 }
 
-func (sdk mfSDK) ReadMessages(chanID, token string) ([]Message, error) {
-	endpoint := fmt.Sprintf("channels/%s/messages", chanID)
+func (sdk mfSDK) ReadMessages(chanName, token string) (MessagesPage, error) {
+	chanNameParts := strings.SplitN(chanName, ".", 2)
+	chanID := chanNameParts[0]
+	subtopicPart := ""
+	if len(chanNameParts) == 2 {
+		subtopicPart = fmt.Sprintf("?subtopic=%s", strings.Replace(chanNameParts[1], ".", "/", -1))
+	}
+
+	endpoint := fmt.Sprintf("channels/%s/messages%s", chanID, subtopicPart)
 	url := createURL(sdk.readerURL, "", endpoint)
 
 	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
-		return nil, err
+		return MessagesPage{}, err
 	}
 
 	resp, err := sdk.sendRequest(req, token, string(sdk.msgContentType))
 	if err != nil {
-		return nil, err
+		return MessagesPage{}, err
 	}
 
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return nil, err
+		return MessagesPage{}, err
 	}
 
 	if resp.StatusCode != http.StatusOK {
 		switch resp.StatusCode {
 		case http.StatusBadRequest:
-			return nil, ErrInvalidArgs
+			return MessagesPage{}, ErrInvalidArgs
 		case http.StatusForbidden:
-			return nil, ErrUnauthorized
+			return MessagesPage{}, ErrUnauthorized
 		default:
-			return nil, ErrFailedRead
+			return MessagesPage{}, ErrFailedRead
 		}
 	}
 
-	var l listMessagesRes
-	if err := json.Unmarshal(body, &l); err != nil {
-		return nil, err
+	mp := messagesPageRes{}
+	if err := json.Unmarshal(body, &mp); err != nil {
+		return MessagesPage{}, err
 	}
 
-	return l.Messages, nil
+	return MessagesPage{
+		Total:    mp.Total,
+		Offset:   mp.Offset,
+		Limit:    mp.Limit,
+		Messages: mp.Messages,
+	}, nil
 }
 
 func (sdk *mfSDK) SetContentType(ct ContentType) error {

@@ -12,6 +12,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+
+	"github.com/mainflux/mainflux"
 )
 
 const (
@@ -81,11 +83,10 @@ type User struct {
 
 // Thing represents mainflux thing.
 type Thing struct {
-	ID       string `json:"id,omitempty"`
-	Type     string `json:"type"`
-	Name     string `json:"name,omitempty"`
-	Key      string `json:"key,omitempty"`
-	Metadata string `json:"metadata,omitempty"`
+	ID       string                 `json:"id,omitempty"`
+	Name     string                 `json:"name,omitempty"`
+	Key      string                 `json:"key,omitempty"`
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // ThingsPage contains list of things in a page with proper metadata.
@@ -98,9 +99,9 @@ type ThingsPage struct {
 
 // Channel represents mainflux channel.
 type Channel struct {
-	ID       string `json:"id,omitempty"`
-	Name     string `json:"name"`
-	Metadata string `json:"metadata,omitempty"`
+	ID       string                 `json:"id,omitempty"`
+	Name     string                 `json:"name"`
+	Metadata map[string]interface{} `json:"metadata,omitempty"`
 }
 
 // ChannelsPage contains list of channels in a page with proper metadata.
@@ -111,21 +112,12 @@ type ChannelsPage struct {
 	Limit    uint64    `json:"limit"`
 }
 
-// Message represents mainflux message.
-type Message struct {
-	Channel     string   `json:"channel,omitempty"`
-	Publisher   string   `json:"publisher,omitempty"`
-	Protocol    string   `json:"protocol,omitempty"`
-	Name        string   `json:"name,omitempty"`
-	Unit        string   `json:"unit,omitempty"`
-	Value       *float64 `json:"value,omitempty"`
-	StringValue *string  `json:"stringValue,omitempty"`
-	BoolValue   *bool    `json:"boolValue,omitempty"`
-	DataValue   *string  `json:"dataValue,omitempty"`
-	ValueSum    *float64 `json:"valueSum,omitempty"`
-	Time        float64  `json:"time,omitempty"`
-	UpdateTime  float64  `json:"updateTime,omitempty"`
-	Link        string   `json:"link,omitempty"`
+// MessagesPage contains list of messages in a page with proper metadata.
+type MessagesPage struct {
+	Total    uint64             `json:"total"`
+	Offset   uint64             `json:"offset"`
+	Limit    uint64             `json:"limit"`
+	Messages []mainflux.Message `json:"messages,omitempty"`
 }
 
 // SDK contains Mainflux API.
@@ -183,8 +175,8 @@ type SDK interface {
 	// SendMessage send message to specified channel.
 	SendMessage(chanID, msg, token string) error
 
-	// ReadMessages read messagea of specified channel.
-	ReadMessages(chanID, token string) ([]Message, error)
+	// ReadMessages read messages of specified channel.
+	ReadMessages(chanID, token string) (MessagesPage, error)
 
 	// SetContentType sets message content type.
 	SetContentType(ct ContentType) error

@@ -24,8 +24,9 @@ import (
 	"github.com/mainflux/mainflux/readers/api"
 	"github.com/mainflux/mainflux/readers/mongodb"
 	thingsapi "github.com/mainflux/mainflux/things/api/grpc"
-	"github.com/mongodb/mongo-go-driver/mongo"
 	stdprometheus "github.com/prometheus/client_golang/prometheus"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
@@ -109,7 +110,8 @@ func loadConfigs() config {
 }
 
 func connectToMongoDB(host, port, name string, logger logger.Logger) *mongo.Database {
-	client, err := mongo.Connect(context.Background(), fmt.Sprintf("mongodb://%s:%s", host, port), nil)
+	addr := fmt.Sprintf("mongodb://%s:%s", host, port)
+	client, err := mongo.Connect(context.Background(), options.Client().ApplyURI(addr))
 	if err != nil {
 		logger.Error(fmt.Sprintf("Failed to connect to database: %s", err))
 		os.Exit(1)
@@ -167,5 +169,5 @@ func newService(db *mongo.Database, logger logger.Logger) readers.MessageReposit
 func startHTTPServer(repo readers.MessageRepository, tc mainflux.ThingsServiceClient, port string, logger logger.Logger, errs chan error) {
 	p := fmt.Sprintf(":%s", port)
 	logger.Info(fmt.Sprintf("Mongo reader service started, exposed port %s", port))
-	errs <- http.ListenAndServe(p, api.MakeHandler(repo, tc, "cassandra-reader"))
+	errs <- http.ListenAndServe(p, api.MakeHandler(repo, tc, "mongodb-reader"))
 }

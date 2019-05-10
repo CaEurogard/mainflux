@@ -42,12 +42,16 @@ func TestThingSave(t *testing.T) {
 		{
 			desc: "create invalid thing",
 			thing: things.Thing{
-				ID:       uuid.New().ID(),
-				Owner:    email,
-				Key:      uuid.New().ID(),
-				Metadata: "invalid",
+				ID:    "invalid",
+				Owner: email,
+				Key:   uuid.New().ID(),
 			},
 			err: things.ErrMalformedEntity,
+		},
+		{
+			desc:  "create thing with conflicting key",
+			thing: thing,
+			err:   things.ErrConflict,
 		},
 	}
 
@@ -104,19 +108,82 @@ func TestThingUpdate(t *testing.T) {
 			},
 			err: things.ErrNotFound,
 		},
-		{
-			desc: "update thing with invalid data",
-			thing: things.Thing{
-				ID:       id,
-				Owner:    email,
-				Metadata: "invalid",
-			},
-			err: things.ErrMalformedEntity,
-		},
 	}
 
 	for _, tc := range cases {
 		err := thingRepo.Update(tc.thing)
+		assert.Equal(t, tc.err, err, fmt.Sprintf("%s: expected %s got %s\n", tc.desc, tc.err, err))
+	}
+}
+
+func TestUpdateKey(t *testing.T) {
+	email := "thing-update=key@example.com"
+	newKey := "new-key"
+	thingRepo := postgres.NewThingRepository(db, testLog)
+
+	existingThing := things.Thing{
+		ID:    uuid.New().ID(),
+		Owner: email,
+		Key:   uuid.New().ID(),
+	}
+	existingID, _ := thingRepo.Save(existingThing)
+	existingThing.ID = existingID
+
+	thing := things.Thing{
+		ID:    uuid.New().ID(),
+		Owner: email,
+		Key:   uuid.New().ID(),
+	}
+
+	id, _ := thingRepo.Save(thing)
+	thing.ID = id
+
+	cases := []struct {
+		desc  string
+		owner string
+		id    string
+		key   string
+		err   error
+	}{
+		{
+			desc:  "update key of an existing thing",
+			owner: thing.Owner,
+			id:    thing.ID,
+			key:   newKey,
+			err:   nil,
+		},
+		{
+			desc:  "update key of a non-existing thing with existing user",
+			owner: thing.Owner,
+			id:    uuid.New().ID(),
+			key:   newKey,
+			err:   things.ErrNotFound,
+		},
+		{
+			desc:  "update key of an existing thing with non-existing user",
+			owner: wrongValue,
+			id:    thing.ID,
+			key:   newKey,
+			err:   things.ErrNotFound,
+		},
+		{
+			desc:  "update key of a non-existing thing with non-existing user",
+			owner: wrongValue,
+			id:    uuid.New().ID(),
+			key:   newKey,
+			err:   things.ErrNotFound,
+		},
+		{
+			desc:  "update key with existing key value",
+			owner: thing.Owner,
+			id:    thing.ID,
+			key:   existingThing.Key,
+			err:   things.ErrConflict,
+		},
+	}
+
+	for _, tc := range cases {
+		err := thingRepo.UpdateKey(tc.owner, tc.id, tc.key)
 		assert.Equal(t, tc.err, err, fmt.Sprintf("%s: expected %s got %s\n", tc.desc, tc.err, err))
 	}
 }
@@ -152,6 +219,11 @@ func TestSingleThingRetrieval(t *testing.T) {
 		"retrieve thing with non-existing owner": {
 			owner: wrongValue,
 			ID:    thing.ID,
+			err:   things.ErrNotFound,
+		},
+		"retrieve thing with malformed ID": {
+			owner: thing.Owner,
+			ID:    wrongValue,
 			err:   things.ErrNotFound,
 		},
 	}

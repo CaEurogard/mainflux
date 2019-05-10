@@ -8,7 +8,6 @@
 package bootstrap
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/mainflux/mainflux"
@@ -18,10 +17,16 @@ import (
 // This is used as a response from ConfigReader and can easily be
 // replace with any other response format.
 type bootstrapRes struct {
-	MFThing    string   `json:"mainflux_id"`
-	MFKey      string   `json:"mainflux_key"`
-	MFChannels []string `json:"mainflux_channels"`
-	Content    string   `json:"content"`
+	MFThing    string       `json:"mainflux_id"`
+	MFKey      string       `json:"mainflux_key"`
+	MFChannels []channelRes `json:"mainflux_channels"`
+	Content    string       `json:"content"`
+}
+
+type channelRes struct {
+	ID       string      `json:"id"`
+	Name     string      `json:"name,omitempty"`
+	Metadata interface{} `json:"metadata,omitempty"`
 }
 
 func (res bootstrapRes) Code() int {
@@ -45,14 +50,17 @@ func NewConfigReader() ConfigReader {
 }
 
 func (r reader) ReadConfig(cfg Config) (mainflux.Response, error) {
-	if len(cfg.MFChannels) < 1 {
-		return bootstrapRes{}, errors.New("Invalid configuration")
+	var channels []channelRes
+	for _, ch := range cfg.MFChannels {
+		channels = append(channels, channelRes{ID: ch.ID, Name: ch.Name, Metadata: ch.Metadata})
 	}
+
 	res := bootstrapRes{
 		MFKey:      cfg.MFKey,
 		MFThing:    cfg.MFThing,
-		MFChannels: cfg.MFChannels,
+		MFChannels: channels,
 		Content:    cfg.Content,
 	}
+
 	return res, nil
 }

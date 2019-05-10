@@ -16,11 +16,6 @@ import (
 	mfsdk "github.com/mainflux/mainflux/sdk/go"
 )
 
-const (
-	thingType = "device"
-	chanName  = "channel"
-)
-
 var (
 	// ErrNotFound indicates a non-existent entity request.
 	ErrNotFound = errors.New("non-existent entity")
@@ -45,26 +40,45 @@ var _ Service = (*bootstrapService)(nil)
 // Service specifies an API that must be fulfilled by the domain service
 // implementation, and all of its decorators (e.g. logging & metrics).
 type Service interface {
-	// Add adds new Thing to the user identified by the provided key.
+	// Add adds new Thing Config to the user identified by the provided key.
 	Add(string, Config) (Config, error)
 
-	// View returns Thing with given ID belonging to the user identified by the given key.
+	// View returns Thing Config with given ID belonging to the user identified by the given key.
 	View(string, string) (Config, error)
 
-	// Update updates editable fields of the provided Thing.
+	// Update updates editable fields of the provided Config.
 	Update(string, Config) error
 
-	// List returns subset of Things with given state that belong to the user identified by the given key.
-	List(string, Filter, uint64, uint64) ([]Config, error)
+	// UpdateConnections updates list of Channels related to given Config.
+	UpdateConnections(string, string, []string) error
 
-	// Remove removes Thing with specified key that belongs to the user identified by the given key.
+	// List returns subset of Configs with given search params that belong to the
+	// user identified by the given key.
+	List(string, Filter, uint64, uint64) (ConfigsPage, error)
+
+	// Remove removes Config with specified key that belongs to the user identified by the given key.
 	Remove(string, string) error
 
-	// Bootstrap returns configuration to the Thing with provided external ID using external key.
+	// Bootstrap returns Config to the Thing with provided external ID using external key.
 	Bootstrap(string, string) (Config, error)
 
 	// ChangeState changes state of the Thing with given ID and owner.
 	ChangeState(string, string, State) error
+
+	// Methods RemoveConfig, UpdateChannel, and RemoveChannel are used as
+	// handlers for events. That's why these methods surpass ownership check.
+
+	// RemoveConfigHandler removes Configuration with id received from an event.
+	RemoveConfigHandler(string) error
+
+	// UpdateChannelHandler updates Channel with data received from an event.
+	UpdateChannelHandler(Channel) error
+
+	// RemoveChannelHandler removes Channel with id received from an event.
+	RemoveChannelHandler(string) error
+
+	// DisconnectHandler changes state of the Config when connect/disconnect event occurs.
+	DisconnectThingHandler(string, string) error
 }
 
 // ConfigReader is used to parse Config into format which will be encoded
@@ -95,15 +109,23 @@ func (bs bootstrapService) Add(key string, cfg Config) (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
-	// Check if channels exist. This is the way to prevent invalid configuration to be saved.
-	// However, channels deletion wil eventually cause this; since Bootstrap service is not
-	// using events from the Things service at the moment.
-	for _, c := range cfg.MFChannels {
-		if _, err := bs.sdk.Channel(c, key); err != nil {
-			return Config{}, ErrMalformedEntity
-		}
+
+	toConnect := bs.toIDList(cfg.MFChannels)
+
+	// Check if channels exist. This is the way to prevent fetching channels that already exist.
+	existing, err := bs.configs.ListExisting(owner, toConnect)
+	if err != nil {
+		return Config{}, err
 	}
-	mfThing, err := bs.add(key)
+
+	cfg.MFChannels, err = bs.connectionChannels(toConnect, bs.toIDList(existing), key)
+
+	if err != nil {
+		return Config{}, err
+	}
+
+	id := cfg.MFThing
+	mfThing, err := bs.thing(key, id)
 	if err != nil {
 		return Config{}, err
 	}
@@ -112,14 +134,19 @@ func (bs bootstrapService) Add(key string, cfg Config) (Config, error) {
 	cfg.Owner = owner
 	cfg.State = Inactive
 	cfg.MFKey = mfThing.Key
+	saved, err := bs.configs.Save(cfg, toConnect)
 
-	id, err := bs.configs.Save(cfg)
 	if err != nil {
+		if id == "" {
+			// Fail silently.
+			bs.sdk.DeleteThing(cfg.MFThing, key)
+		}
 		return Config{}, err
 	}
-	bs.configs.RemoveUnknown(cfg.ExternalKey, cfg.ExternalID)
 
-	cfg.MFThing = id
+	cfg.MFThing = saved
+	cfg.MFChannels = append(cfg.MFChannels, existing...)
+
 	return cfg, nil
 }
 
@@ -128,6 +155,7 @@ func (bs bootstrapService) View(key, id string) (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
+
 	return bs.configs.RetrieveByID(owner, id)
 }
 
@@ -139,45 +167,45 @@ func (bs bootstrapService) Update(key string, cfg Config) error {
 
 	cfg.Owner = owner
 
-	t, err := bs.configs.RetrieveByID(owner, cfg.MFThing)
+	return bs.configs.Update(cfg)
+}
+
+func (bs bootstrapService) UpdateConnections(key, id string, connections []string) error {
+	owner, err := bs.identify(key)
 	if err != nil {
 		return err
 	}
 
-	id := t.MFThing
-	var connect []string
-	var disconnect map[string]bool
-
-	switch t.State {
-	case Active:
-		disconnect = make(map[string]bool, len(t.MFChannels))
-		for _, c := range t.MFChannels {
-			disconnect[c] = true
-		}
-
-		for _, c := range cfg.MFChannels {
-			if cfg.State == Active {
-				if disconnect[c] {
-					// Don't disconnect common elements.
-					delete(disconnect, c)
-					continue
-				}
-				// Connect new elements.
-				connect = append(connect, c)
-			}
-		}
-
-	default:
-		if cfg.State == Active {
-			// Connect all new elements.
-			connect = cfg.MFChannels
-		}
+	cfg, err := bs.configs.RetrieveByID(owner, id)
+	if err != nil {
+		return err
 	}
 
-	for c := range disconnect {
+	add, remove := bs.updateList(cfg, connections)
+
+	// Check if channels exist. This is the way to prevent fetching channels that already exist.
+	existing, err := bs.configs.ListExisting(owner, connections)
+	if err != nil {
+		return err
+	}
+
+	channels, err := bs.connectionChannels(connections, bs.toIDList(existing), key)
+	if err != nil {
+		return err
+	}
+
+	cfg.MFChannels = channels
+	var connect, disconnect []string
+
+	if cfg.State == Active {
+		connect = add
+		disconnect = remove
+	}
+
+	for _, c := range disconnect {
 		if err := bs.sdk.DisconnectThing(id, c, key); err != nil {
 			if err == mfsdk.ErrNotFound {
-				return ErrMalformedEntity
+				continue
 			}
 			return ErrThings
 		}
@@ -192,18 +220,16 @@ func (bs bootstrapService) Update(key string, cfg Config) error {
 		}
 	}
 
-	return bs.configs.Update(cfg)
+	return bs.configs.UpdateConnections(owner, id, channels, connections)
 }
 
-func (bs bootstrapService) List(key string, filter Filter, offset, limit uint64) ([]Config, error) {
+func (bs bootstrapService) List(key string, filter Filter, offset, limit uint64) (ConfigsPage, error) {
 	owner, err := bs.identify(key)
 	if err != nil {
-		return []Config{}, err
+		return ConfigsPage{}, err
 	}
-	if filter == nil {
-		return []Config{}, ErrMalformedEntity
-	}
-	if _, ok := filter["unknown"]; ok {
+
+	if filter.Unknown {
 		return bs.configs.RetrieveUnknown(offset, limit), nil
 	}
 
@@ -216,23 +242,11 @@ func (bs bootstrapService) Remove(key, id string) error {
 		return err
 	}
 
-	thing, err := bs.configs.RetrieveByID(owner, id)
-	if err != nil {
-		if err == ErrNotFound {
-			return nil
-		}
-		return err
-	}
-
-	if err := bs.sdk.DeleteThing(thing.MFThing, key); err != nil {
-		return ErrThings
-	}
-
 	return bs.configs.Remove(owner, id)
 }
 
 func (bs bootstrapService) Bootstrap(externalKey, externalID string) (Config, error) {
-	thing, err := bs.configs.RetrieveByExternalID(externalKey, externalID)
+	cfg, err := bs.configs.RetrieveByExternalID(externalKey, externalID)
 	if err != nil {
 		if err == ErrNotFound {
 			bs.configs.SaveUnknown(externalKey, externalID)
@@ -240,7 +254,7 @@ func (bs bootstrapService) Bootstrap(externalKey, externalID string) (Config, er
 		return Config{}, ErrNotFound
 	}
 
-	return thing, nil
+	return cfg, nil
 }
 
 func (bs bootstrapService) ChangeState(key, id string, state State) error {
@@ -249,25 +263,25 @@ func (bs bootstrapService) ChangeState(key, id string, state State) error {
 		return err
 	}
 
-	thing, err := bs.configs.RetrieveByID(owner, id)
+	cfg, err := bs.configs.RetrieveByID(owner, id)
 	if err != nil {
 		return err
 	}
 
-	if thing.State == state {
+	if cfg.State == state {
 		return nil
 	}
 
 	switch state {
 	case Active:
-		for _, c := range thing.MFChannels {
-			if err := bs.sdk.ConnectThing(thing.MFThing, c, key); err != nil {
+		for _, c := range cfg.MFChannels {
+			if err := bs.sdk.ConnectThing(cfg.MFThing, c.ID, key); err != nil {
 				return ErrThings
 			}
 		}
 	case Inactive:
-		for _, c := range thing.MFChannels {
-			if err := bs.sdk.DisconnectThing(thing.MFThing, c, key); err != nil {
+		for _, c := range cfg.MFChannels {
+			if err := bs.sdk.DisconnectThing(cfg.MFThing, c.ID, key); err != nil {
 				if err == mfsdk.ErrNotFound {
 					continue
 				}
@@ -279,18 +293,20 @@ func (bs bootstrapService) ChangeState(key, id string, state State) error {
 	return bs.configs.ChangeState(owner, id, state)
 }
 
-func (bs bootstrapService) add(key string) (mfsdk.Thing, error) {
-	thingID, err := bs.sdk.CreateThing(mfsdk.Thing{Type: thingType}, key)
-	if err != nil {
-		return mfsdk.Thing{}, err
-	}
+func (bs bootstrapService) UpdateChannelHandler(channel Channel) error {
+	return bs.configs.UpdateChannel(channel)
+}
 
-	thing, err := bs.sdk.Thing(thingID, key)
-	if err != nil {
-		return mfsdk.Thing{}, bs.sdk.DeleteThing(thingID, key)
-	}
+func (bs bootstrapService) RemoveConfigHandler(id string) error {
+	return bs.configs.RemoveThing(id)
+}
 
-	return thing, nil
+func (bs bootstrapService) RemoveChannelHandler(id string) error {
+	return bs.configs.RemoveChannel(id)
+}
+
+func (bs bootstrapService) DisconnectThingHandler(channelID, thingID string) error {
+	return bs.configs.DisconnectThing(channelID, thingID)
 }
 
 func (bs bootstrapService) identify(token string) (string, error) {
@@ -303,4 +319,98 @@ func (bs bootstrapService) identify(token string) (string, error) {
 	}
 
 	return res.GetValue(), nil
+}
+
+// Method thing retrieves Mainflux Thing creating one if an empty ID is passed.
+func (bs bootstrapService) thing(key, id string) (mfsdk.Thing, error) {
+	thingID := id
+	var err error
+
+	if id == "" {
+		thingID, err = bs.sdk.CreateThing(mfsdk.Thing{}, key)
+		if err != nil {
+			return mfsdk.Thing{}, err
+		}
+	}
+
+	thing, err := bs.sdk.Thing(thingID, key)
+	if err != nil {
+		if err == mfsdk.ErrNotFound {
+			return mfsdk.Thing{}, ErrNotFound
+		}
+
+		if id != "" {
+			bs.sdk.DeleteThing(thingID, key)
+		}
+
+		return mfsdk.Thing{}, ErrThings
+	}
+
+	return thing, nil
+}
+
+func (bs bootstrapService) connectionChannels(channels, existing []string, key string) ([]Channel, error) {
+	add := make(map[string]bool, len(channels))
+	for _, ch := range channels {
+		add[ch] = true
+	}
+
+	for _, ch := range existing {
+		if add[ch] == true {
+			delete(add, ch)
+		}
+	}
+
+	var ret []Channel
+	for id := range add {
+		ch, err := bs.sdk.Channel(id, key)
+		if err != nil {
+			return nil, ErrMalformedEntity
+		}
+
+		ret = append(ret, Channel{
+			ID:       ch.ID,
+			Name:     ch.Name,
+			Metadata: ch.Metadata,
+		})
+	}
+
+	return ret, nil
+}
+
+// Method updateList accepts config and channel IDs and returns three lists:
+// 1) IDs of Channels to be added
+// 2) IDs of Channels to be removed
+// 3) IDs of common Channels for these two configs
+func (bs bootstrapService) updateList(cfg Config, connections []string) (add, remove []string) {
+	var disconnect map[string]bool
+	disconnect = make(map[string]bool, len(cfg.MFChannels))
+	for _, c := range cfg.MFChannels {
+		disconnect[c.ID] = true
+	}
+
+	for _, c := range connections {
+		if disconnect[c] {
+			// Don't disconnect common elements.
+			delete(disconnect, c)
+			continue
+		}
+		// Connect new elements.
+		add = append(add, c)
+	}
+
+	for v := range disconnect {
+		remove = append(remove, v)
+	}
+
+	return
+}
+
+func (bs bootstrapService) toIDList(channels []Channel) []string {
+	var ret []string
+	for _, ch := range channels {
+		ret = append(ret, ch.ID)
+	}
+
+	return ret
 }
