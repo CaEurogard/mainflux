@@ -112,7 +112,7 @@ rundev:
 	cd scripts && ./run.sh
 
 run:
-	docker-compose -f docker/docker-compose.yml -f docker/docker-compose.normalizer-debugging.yml -f docker/docker-compose.nats-debugging.yml -f docker/docker-compose.persistence.yml up -d
+	docker-compose -f docker/docker-compose.yml -f docker/docker-compose.normalizer-debugging.yml -f docker/docker-compose.nats-debugging.yml -f docker/docker-compose.persistence.yml up -d ; docker start pgadmin mysql57
 
 runwriter:
 	docker-compose -f docker/addons/influxdb-writer/docker-compose.yml -f docker/addons/influxdb-writer/docker-compose.influxdb-debugging.yaml -f docker/addons/influxdb-writer/docker-compose.persistence.yml up -d

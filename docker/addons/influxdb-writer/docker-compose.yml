@@ -14,6 +14,7 @@ networks:
 volumes:
   mainflux-influxdb-volume:
   mainflux-grafana-volume:
+  mainflux-node-red-volume:
 
 services:
 
@@ -66,3 +67,14 @@ services:
       - docker_mainflux-base-net
     volumes:
       - mainflux-grafana-volume:/var/lib/grafana
+
+  node-red:
+    image: nodered/node-red-docker
+    container_name: mainflux-node-red
+    restart: on-failure
+    ports:
+      - 1880:1880
+    networks:
+      - docker_mainflux-base-net
+    volumes:
+      - /home/oliver/node-red/:/data/

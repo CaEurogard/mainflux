@@ -1,0 +1,14 @@
+version: "3"
+
+volumes:
+  influxdb-volume:
+  grafana-volume:
+
+services:
+  influxdb:
+    volumes:
+      - influxdb-volume:/var/lib/influxdb
+
+  grafana:
+    volumes:
+      - grafana-volume:/var/lib/grafana
