@@ -18,8 +18,23 @@ volumes:
   mainflux-mqtt-redis-volume:
   mainflux-things-redis-volume:
   mainflux-es-redis-volume:
+  portainer_data:
+
 
 services:
+  portainer:
+    image: portainer/portainer
+    container_name: my-portainer
+    command: -H unix:///var/run/docker.sock
+    restart: always
+    ports:
+      - 127.0.0.1:9000:9000
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    networks:
+      - mainflux-base-net
+
   nginx:
     image: nginx:1.14.2
     container_name: mainflux-nginx
@@ -27,9 +42,8 @@ services:
     volumes:
       - ./nginx/nginx-${AUTH-key}.conf:/etc/nginx/nginx.conf
       - ./ssl/authorization.js:/etc/nginx/authorization.js
-      - ./ssl/certs/mainflux-server.crt:/etc/ssl/certs/mainflux-server.crt
-      - ./ssl/certs/ca.crt:/etc/ssl/certs/ca.crt
-      - ./ssl/certs/mainflux-server.key:/etc/ssl/private/mainflux-server.key
+      - /etc/letsencrypt/live/eurogard.cloud/fullchain.pem:/etc/ssl/certs/mainflux-server.crt
+      - /etc/letsencrypt/live/eurogard.cloud/privkey.pem:/etc/ssl/private/mainflux-server.key
       - ./ssl/dhparam.pem:/etc/ssl/certs/dhparam.pem
     ports:
       - 80:80
@@ -248,3 +262,63 @@ services:
       - 5683:5683/udp
     networks:
       - mainflux-base-net
+      
+  influxdb:
+    image: influxdb:latest
+    container_name: influxdb
+    ports:
+      - 127.0.0.1:8086:8086
+    env_file:
+        - 'env.influxdb'
+    volumes:
+        # Data persistency
+        # sudo mkdir -p /srv/docker/influxdb/data
+        - /data/influxdb:/var/lib/influxdb
+    networks:
+      - mainflux-base-net
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: mainflux-grafana
+    ports:
+        - 127.0.0.1:3001:3000
+    env_file:
+        - 'env.grafana'
+    links:
+        - influxdb
+    volumes:
+        # Data persistency
+        # sudo mkdir -p /srv/docker/grafana/data; chown 472:472 /srv/docker/grafana/data
+    - /data/grafana:/var/lib/grafana
+    - /data/grafana/etc/grafana.ini:/etc/grafana/grafana.ini
+    networks:
+      - mainflux-base-net
+
+  node-red:
+    image: nodered/node-red-docker
+    container_name: mainflux-node-red
+    restart: on-failure
+    ports:
+      - 1880:1880
+    networks:
+      - mainflux-base-net
+    volumes:
+      - /data/node-red/:/data/
+      
+  db:
+    image: mysql:5.7.25
+    #image: mysql:latest
+    container_name: mysql57
+    restart: always
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    volumes:
+            - /data/mysql:/var/lib/mysql
+            - ./cloudDB.sql:/docker-entrypoint-initdb.d/cloudDB.sql
+    environment:
+      MYSQL_ROOT_PASSWORD: eg2012DB
+      
+    ports:
+            - 127.0.0.1:3306:3306
+    networks:
+             - mainflux-base-net
