@@ -120,16 +120,10 @@ nats.subscribe('channel.>', {'queue':'mqtts'}, function (msg) {
     }
 });
 
-//function parseTopic(topic) {
-    // Topics are in the form `channels/<channel_id>/messages`
-    // Subtopic's are in the form `channels/<channel_id>/messages/<subtopic>`
-  //  return /^channels\/(.+?)\/messages\/?.*$/.exec(topic);
-//}
-
 function parseTopic(topic) {
     // Topics are in the form `channels/<channel_id>/messages`
     // Subtopic's are in the form `channels/<channel_id>/messages/<subtopic>`
-    return /^channels\/(.+?)\/messages\/([a-z0-9]+-[a-z0-9]+-[a-z0-9]+-[a-z0-9]+-[a-z0-9]+)\/(.*)?.*$/.exec(topic);
+    return /^channels\/(.+?)\/messages\/?.*$/.exec(topic);
 }
 
 aedes.authorizePublish = function (client, packet, publish) {
@@ -186,7 +180,6 @@ aedes.authorizePublish = function (client, packet, publish) {
 
 
 aedes.authorizeSubscribe = function (client, packet, subscribe) {
-    logger.info('authorize subscribe attempt');
     var channel = parseTopic(packet.topic);
     if (!channel) {
         logger.warn('unknown topic');
@@ -199,11 +192,8 @@ aedes.authorizeSubscribe = function (client, packet, subscribe) {
             chanID: channelId
         },
         onAuthorize = function (err, res) {
-            //if (!err) {
-            logger.info('thingID:='+client.thingID);
-            logger.info('subtopic:='+channel[2]);
-            if (!err && channel[2] == client.thingId) {
-                logger.info('authorized subscribe'+'thingID:='+client.thingId+'subtopic:='+channel[2]);
+            if (!err) {
+                logger.info('authorized subscribe');
                 subscribe(null, packet);
             } else {
                 logger.warn('unauthorized subscribe: %s', err.message);
