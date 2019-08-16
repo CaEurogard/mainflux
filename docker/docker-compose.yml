@@ -36,7 +36,7 @@ services:
       - mainflux-base-net
 
   nginx:
-    image: nginx:1.14.2
+    image: nginx:1.15.2
     container_name: mainflux-nginx
     restart: on-failure
     volumes:
@@ -45,10 +45,12 @@ services:
       - /etc/letsencrypt/live/eurogard.cloud/fullchain.pem:/etc/ssl/certs/mainflux-server.crt
       - /etc/letsencrypt/live/eurogard.cloud/privkey.pem:/etc/ssl/private/mainflux-server.key
       - ./ssl/dhparam.pem:/etc/ssl/certs/dhparam.pem
+    command: [nginx-debug, '-g', 'daemon off;']
     ports:
       - 80:80
       - 443:443
       - 8883:8883
+      - 4343:4343
     networks:
       - mainflux-base-net
 
