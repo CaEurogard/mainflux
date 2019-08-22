@@ -44,6 +44,8 @@ services:
       - ./ssl/authorization.js:/etc/nginx/authorization.js
       - /etc/letsencrypt/live/eurogard.cloud/fullchain.pem:/etc/ssl/certs/mainflux-server.crt
       - /etc/letsencrypt/live/eurogard.cloud/privkey.pem:/etc/ssl/private/mainflux-server.key
+      - ./nginx/mqtt.crt:/etc/ssl/certs/mqtt.crt
+      - ./nginx/mqtt.key:/etc/ssl/private/mqtt.key
       - ./ssl/dhparam.pem:/etc/ssl/certs/dhparam.pem
     command: [nginx-debug, '-g', 'daemon off;']
     ports:
@@ -321,5 +323,20 @@ services:
       
     ports:
             - 127.0.0.1:3306:3306
+    networks:
+             - mainflux-base-net
+  log_db:
+    image: mysql:latest
+    container_name: mysql8
+    restart: always
+    command: --default-authentication-plugin=mysql_native_password
+    restart: always
+    volumes:
+            - /data/mysql8:/var/lib/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: eg2012DB
+      
+    ports:
+            - 127.0.0.1:3307:3306
     networks:
              - mainflux-base-net
