@@ -121,7 +121,7 @@ services:
       - mainflux-things-redis-volume:/data
 
   things:
-    image: mainflux/things:latest
+    image: dockerhub.eurogard.cloud/things:latest
     container_name: mainflux-things
     depends_on:
       - things-db
@@ -227,7 +227,7 @@ services:
       - mainflux-mqtt-redis-volume:/data
 
   mqtt-adapter:
-    image: mainflux/mqtt:latest
+    image: dockerhub.eurogard.cloud/mqtt:latest
     container_name: mainflux-mqtt
     depends_on:
       - things
