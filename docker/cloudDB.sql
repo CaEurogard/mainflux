@@ -5,7 +5,7 @@ SET time_zone = '+00:00';
 
 
 CREATE DATABASE `digitaix`;
-CREATE DATABASE `eurogard_cloud_ok_test`;
+CREATE DATABASE `nats`;
 CREATE DATABASE `cloudDB`;
 USE `cloudDB`;
 
