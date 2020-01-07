@@ -162,7 +162,7 @@ nats.subscribe('channel.>', {
 function parseTopic(topic) {
     // Topics are in the form `channels/<channel_id>/messages`
     // Subtopic's are in the form `channels/<channel_id>/messages/<subtopic>`
-    return /^channels\/(.+?)\/messages\/?.*$/.exec(topic);
+    return /^channels\/(.+?)\/messages\/([a-z0-9]+-[a-z0-9]+-[a-z0-9]+-[a-z0-9]+-[a-z0-9]+)\/?(.*)?.*$/.exec(topic);
 }
 
 aedes.authorizePublish = function (client, packet, publish) {
